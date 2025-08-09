@@ -16,8 +16,8 @@ byte colPins[COLS] = {D1, D2, D3, D4};
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
-unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 200;
+char lastKey = NO_KEY;
+const unsigned long debounceDelay = 300;
 
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
     Serial.print("Send Status: ");
@@ -34,6 +34,7 @@ void setup() {
         Serial.println("Error initializing ESP-NOW");
         return;
     }
+
     esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
     esp_now_register_send_cb(OnDataSent);
     esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
@@ -42,9 +43,25 @@ void setup() {
 void loop() {
     char key = customKeypad.getKey();
 
-    if (key != NO_KEY && (millis() - lastDebounceTime > debounceDelay)) {
-        lastDebounceTime = millis();
-        Serial.println(key);
-        esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
+    if (key != NO_KEY && key != lastKey) {
+        unsigned long start = millis();
+        bool stable = true;
+
+        while (millis() - start < debounceDelay) {
+            if (customKeypad.getKey() != key) {
+                stable = false;
+                break;
+            }
+        }
+
+        if (stable) {
+            Serial.println(key);
+            esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
+            lastKey = key;
+        }
+    }
+
+    if (key == NO_KEY) {
+        lastKey = NO_KEY;
     }
 }

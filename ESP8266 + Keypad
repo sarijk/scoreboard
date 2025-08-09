@@ -19,6 +19,9 @@ Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS)
 unsigned long lastDebounceTime = 0;
 const unsigned long debounceDelay = 200;
 
+const int noiseCheckCount = 5;
+const int noiseCheckDelay = 5;
+
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
     Serial.print("Send Status: ");
     Serial.println(sendStatus == 0 ? "Success" : "Fail");
@@ -39,8 +42,20 @@ void setup() {
     esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
 }
 
+char getStableKey() {
+    char firstKey = customKeypad.getKey();
+    if (firstKey == NO_KEY) return NO_KEY;
+
+    for (int i = 0; i < noiseCheckCount; i++) {
+        delay(noiseCheckDelay);
+        char k = customKeypad.getKey();
+        if (k != firstKey) return NO_KEY;
+    }
+    return firstKey;
+}
+
 void loop() {
-    char key = customKeypad.getKey();
+    char key = getStableKey();
 
     if (key != NO_KEY && (millis() - lastDebounceTime > debounceDelay)) {
         lastDebounceTime = millis();

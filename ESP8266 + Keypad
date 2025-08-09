@@ -4,6 +4,7 @@
 
 uint8_t receiverMacAddress[] = {0x6C, 0xC8, 0x40, 0x06, 0xCD, 0xD0};
 
+// Keypad setup
 const byte ROWS = 3;
 const byte COLS = 4;
 char hexaKeys[ROWS][COLS] = {
@@ -16,42 +17,35 @@ byte colPins[COLS] = {D1, D2, D3, D4};
 
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
-char lastKey = NO_KEY;
 unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 250;
+const unsigned long debounceDelay = 200; // ms
 
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
-  Serial.print("Send Status: ");
-  Serial.println(sendStatus == 0 ? "Success" : "Fail");
+    Serial.print("Send Status: ");
+    Serial.println(sendStatus == 0 ? "Success" : "Fail");
 }
 
 void setup() {
-  Serial.begin(9600);
+    Serial.begin(9600);
 
-  WiFi.mode(WIFI_STA);
-  WiFi.disconnect();
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
 
-  if (esp_now_init() != 0) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-  esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
-  esp_now_register_send_cb(OnDataSent);
-  esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+    if (esp_now_init() != 0) {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
+    esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
+    esp_now_register_send_cb(OnDataSent);
+    esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
 }
 
 void loop() {
-  char key = customKeypad.getKey();
+    char key = customKeypad.getKey();
 
-  if (key != NO_KEY && key != lastKey && (millis() - lastDebounceTime > debounceDelay)) {
-    lastDebounceTime = millis();
-    Serial.println(key);
-    esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
-  }
-
-  if (key != NO_KEY) {
-    lastKey = key;
-  } else {
-    lastKey = NO_KEY;
-  }
+    if (key != NO_KEY && (millis() - lastDebounceTime > debounceDelay)) {
+        lastDebounceTime = millis();
+        Serial.println(key);
+        esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
+    }
 }

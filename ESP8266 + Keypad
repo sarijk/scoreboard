@@ -17,7 +17,7 @@ byte colPins[COLS] = {D1, D2, D3, D4};
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 unsigned long lastDebounceTime = 0;
-const unsigned long debounceDelay = 200; // ms
+const unsigned long debounceDelay = 200;
 
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
     Serial.print("Send Status: ");

@@ -50,7 +50,6 @@ void setup() {
 }
 
 void loop() {
-    // Proses hanya jika ada data baru
     if (myData.a != lastData) {
         lastData = myData.a;
 
@@ -106,5 +105,5 @@ void loop() {
     shiftOut(DATA, CLK, MSBFIRST, ~segment[skor2_d2]);
     digitalWrite(LATCH, HIGH);
 
-    delay(50); // refresh cepat
+    delay(50);
 }

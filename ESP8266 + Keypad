@@ -17,51 +17,41 @@ byte colPins[COLS] = {D1, D2, D3, D4};
 Keypad customKeypad = Keypad(makeKeymap(hexaKeys), rowPins, colPins, ROWS, COLS);
 
 char lastKey = NO_KEY;
-const unsigned long debounceDelay = 300;
+unsigned long lastDebounceTime = 0;
+const unsigned long debounceDelay = 250;
 
 void OnDataSent(uint8_t *mac_addr, uint8_t sendStatus) {
-    Serial.print("Send Status: ");
-    Serial.println(sendStatus == 0 ? "Success" : "Fail");
+  Serial.print("Send Status: ");
+  Serial.println(sendStatus == 0 ? "Success" : "Fail");
 }
 
 void setup() {
-    Serial.begin(9600);
+  Serial.begin(9600);
 
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
+  WiFi.mode(WIFI_STA);
+  WiFi.disconnect();
 
-    if (esp_now_init() != 0) {
-        Serial.println("Error initializing ESP-NOW");
-        return;
-    }
-
-    esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
-    esp_now_register_send_cb(OnDataSent);
-    esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
+  if (esp_now_init() != 0) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_set_self_role(ESP_NOW_ROLE_CONTROLLER);
+  esp_now_register_send_cb(OnDataSent);
+  esp_now_add_peer(receiverMacAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
 }
 
 void loop() {
-    char key = customKeypad.getKey();
+  char key = customKeypad.getKey();
 
-    if (key != NO_KEY && key != lastKey) {
-        unsigned long start = millis();
-        bool stable = true;
+  if (key != NO_KEY && key != lastKey && (millis() - lastDebounceTime > debounceDelay)) {
+    lastDebounceTime = millis();
+    Serial.println(key);
+    esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
+  }
 
-        while (millis() - start < debounceDelay) {
-            if (customKeypad.getKey() != key) {
-                stable = false;
-                break;
-            }
-        }
-
-        if (stable) {
-            Serial.println(key);
-            esp_now_send(receiverMacAddress, (uint8_t *)&key, sizeof(key));
-            lastKey = key;
-        }
-    }
-
-    if (key == NO_KEY) {
-        lastKey = NO_KEY;
-    }
+  if (key != NO_KEY) {
+    lastKey = key;
+  } else {
+    lastKey = NO_KEY;
+  }
 }

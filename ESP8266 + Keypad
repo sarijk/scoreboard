@@ -4,7 +4,6 @@
 
 uint8_t receiverMacAddress[] = {0x6C, 0xC8, 0x40, 0x06, 0xCD, 0xD0};
 
-// Keypad setup
 const byte ROWS = 3;
 const byte COLS = 4;
 char hexaKeys[ROWS][COLS] = {
